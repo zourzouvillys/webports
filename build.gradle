@@ -1,0 +1,49 @@
+
+apply plugin: 'java-library'
+apply plugin: 'eclipse'
+
+repositories {
+  mavenCentral()
+  jcenter()
+}
+  
+sourceCompatibility = 9
+targetCompatibility = 9
+  
+  
+configurations {
+  api 
+  'default' { extendsFrom api }
+}
+
+artifacts { api jar }
+
+artifacts { jar }
+
+jar {
+  manifest {
+    attributes ('Automatic-Module-Name': "zrz.webports")
+  }
+}      
+
+dependencies {
+
+  // shared libs
+  implementation 'com.google.guava:guava:26.0-jre'
+  implementation 'org.slf4j:slf4j-api:1.7.25'
+  implementation 'io.reactivex.rxjava2:rxjava:2.2.2'
+  
+  // main transports.
+  implementation 'io.netty:netty-codec-http2:4.1.30.Final'
+  implementation 'io.netty:netty-handler:4.1.30.Final'
+  implementation 'io.netty:netty-transport:4.1.30.Final'
+
+  compileOnly         'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
+  
+  testImplementation  'junit:junit:4.12'
+  testImplementation  'org.assertj:assertj-core:3.6.1'
+  testImplementation  'ch.qos.logback:logback-classic:1.2.3'  
+   
+}
+
+
