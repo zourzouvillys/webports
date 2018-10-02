@@ -19,20 +19,19 @@ import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
-import io.netty.util.AsyncMapping;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.Promise;
+import io.reactivex.Flowable;
+import zrz.webports.spi.SniProvider;
 
-public class FileBasedSniMapper implements AsyncMapping<String, SslContext> {
+public class FileBasedSniMapper implements SniProvider {
 
   private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(FileBasedSniMapper.class);
   private final Map<String, SslContext> contexts = new HashMap<>();
   private final Map<InternetDomainName, Path> wildcards = new HashMap<>();
   private final Map<InternetDomainName, Path> paths = new HashMap<>();
 
-  public FileBasedSniMapper() {
+  public FileBasedSniMapper(final String envname) {
 
-    final String key = System.getenv("CERTSDIR");
+    final String key = System.getenv(envname);
 
     if (key == null) {
       return;
@@ -79,54 +78,60 @@ public class FileBasedSniMapper implements AsyncMapping<String, SslContext> {
   }
 
   @Override
-  public Future<SslContext> map(String input, final Promise<SslContext> promise) {
+  public Flowable<SslContext> map(String input) {
 
     if (input == null) {
       // default ...
-      input = "adrp.app";
+      input = this.wildcards.keySet().iterator().next().toString();
     }
 
-    final SslContext sslCtx = this.contexts.computeIfAbsent(input, _name -> {
-      try {
+    // TODO: cache
 
-        final Set<String> ciphers = new HashSet<>();
+    return Flowable.just(this.generate(input));
 
-        ciphers.addAll(Http2SecurityUtil.CIPHERS);
-        ciphers.add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384");
-        ciphers.add("TLS_RSA_WITH_AES_256_GCM_SHA384");
+  }
 
-        final InternetDomainName idn = InternetDomainName.from(_name);
+  SslContext generate(final String _name) {
 
-        final Path certdir = this.paths.containsKey(idn)
-            ? this.paths.get(idn)
-            : this.wildcards.get(idn.parent());
+    try {
 
-        log.info("using {} for {}", certdir, idn);
+      final Set<String> ciphers = new HashSet<>();
 
-        return SslContextBuilder
-            .forServer(
-                certdir.resolve("tls.crt").toFile(),
-                certdir.resolve("tls.key").toFile())
-            .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
-            .applicationProtocolConfig(
-                new ApplicationProtocolConfig(
-                    ApplicationProtocolConfig.Protocol.ALPN,
-                    ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                    ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                    ApplicationProtocolNames.HTTP_2,
-                    ApplicationProtocolNames.HTTP_1_1))
-            .build();
+      ciphers.addAll(Http2SecurityUtil.CIPHERS);
+
+      ciphers.add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384");
+      ciphers.add("TLS_RSA_WITH_AES_256_GCM_SHA384");
+
+      final InternetDomainName idn = InternetDomainName.from(_name);
+
+      Path certdir = this.paths.containsKey(idn)
+          ? this.paths.get(idn)
+          : this.wildcards.get(idn.parent());
+
+      if (certdir == null) {
+        certdir = this.wildcards.values().iterator().next();
       }
-      catch (final SSLException e) {
-        throw new RuntimeException(e);
-      }
+
+      log.debug("using {} for {}", certdir, idn);
+
+      return SslContextBuilder
+          .forServer(
+              certdir.resolve("tls.crt").toFile(),
+              certdir.resolve("tls.key").toFile())
+          .ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
+          // .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
+          .applicationProtocolConfig(
+              new ApplicationProtocolConfig(
+                  ApplicationProtocolConfig.Protocol.ALPN,
+                  ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+                  ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+                  ApplicationProtocolNames.HTTP_2,
+                  ApplicationProtocolNames.HTTP_1_1))
+          .build();
     }
-
-    );
-
-    promise.setSuccess(sslCtx);
-
-    return promise;
+    catch (final SSLException e) {
+      throw new RuntimeException(e);
+    }
 
   }
 

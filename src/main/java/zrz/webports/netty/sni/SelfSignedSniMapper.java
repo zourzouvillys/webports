@@ -17,11 +17,10 @@ import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SupportedCipherSuiteFilter;
 import io.netty.handler.ssl.util.SelfSignedCertificate;
-import io.netty.util.AsyncMapping;
-import io.netty.util.concurrent.Future;
-import io.netty.util.concurrent.Promise;
+import io.reactivex.Flowable;
+import zrz.webports.spi.SniProvider;
 
-public class SelfSignedSniMapper implements AsyncMapping<String, SslContext> {
+public class SelfSignedSniMapper implements SniProvider {
 
   private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(SelfSignedSniMapper.class);
   private final Map<String, SslContext> contexts = new HashMap<>();
@@ -31,7 +30,7 @@ public class SelfSignedSniMapper implements AsyncMapping<String, SslContext> {
   }
 
   @Override
-  public Future<SslContext> map(String input, final Promise<SslContext> promise) {
+  public Flowable<SslContext> map(String input) {
 
     if (input == null) {
       // default ...
@@ -71,9 +70,7 @@ public class SelfSignedSniMapper implements AsyncMapping<String, SslContext> {
 
     );
 
-    promise.setSuccess(sslCtx);
-
-    return promise;
+    return Flowable.just(sslCtx);
 
   }
 

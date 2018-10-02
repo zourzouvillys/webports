@@ -7,9 +7,11 @@ import javax.net.ssl.SSLHandshakeException;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.SimpleChannelInboundHandler;
+import io.netty.handler.codec.http.HttpHeaderValues;
 import io.netty.handler.codec.http.HttpMessage;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpServerUpgradeHandler;
+import io.netty.handler.codec.http.HttpServerUpgradeHandler.UpgradeCodec;
 import io.netty.handler.codec.http.HttpServerUpgradeHandler.UpgradeCodecFactory;
 import io.netty.handler.codec.http2.Http2CodecUtil;
 import io.netty.handler.codec.http2.Http2MultiplexCodec;
@@ -22,13 +24,14 @@ import io.netty.util.AsciiString;
 import io.netty.util.ReferenceCountUtil;
 import zrz.webports.WebPortContext;
 import zrz.webports.netty.http11.PlainHttpHandler;
+import zrz.webports.netty.http11.WebsocketUpgradeCodec;
 
 /**
  * Used during protocol negotiation (connection establishment), adds either a http/1.1 or h2 handler to the end of the
  * pipeline.
  */
 
-public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
+public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler implements UpgradeCodecFactory {
 
   private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(Http2OrHttpHandler.class);
   private final WebPortContext ctx;
@@ -141,9 +144,19 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
   }
 
   private UpgradeCodecFactory createUpgradeFactory() {
-    return protocol -> (AsciiString.contentEquals(Http2CodecUtil.HTTP_UPGRADE_PROTOCOL_NAME, protocol))
-        ? new Http2ServerUpgradeCodec(this.createH2Handler())
-        : null;
+    return this;
+  }
+
+  @Override
+  public UpgradeCodec newUpgradeCodec(final CharSequence protocol) {
+    if (AsciiString.contentEquals(Http2CodecUtil.HTTP_UPGRADE_PROTOCOL_NAME, protocol)) {
+      return new Http2ServerUpgradeCodec(this.createH2Handler());
+    }
+    else if (AsciiString.contentEquals(HttpHeaderValues.WEBSOCKET, protocol)) {
+      return new WebsocketUpgradeCodec(this.ctx);
+    }
+    log.info("unknown protocol for upgrade: {}", protocol);
+    return null;
   }
 
 }

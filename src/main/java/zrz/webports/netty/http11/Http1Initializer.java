@@ -75,7 +75,7 @@ public class Http1Initializer extends ChannelInitializer<Channel> implements Upg
       return new Http2ServerUpgradeCodec(this.createH2Handler());
     }
     else if (AsciiString.contentEquals(HttpHeaderValues.WEBSOCKET, protocol)) {
-      return new WebsocketUpgradeCode(this.ctx);
+      return new WebsocketUpgradeCodec(this.ctx);
     }
     log.info("unknown protocol for upgrade: {}", protocol);
     return null;

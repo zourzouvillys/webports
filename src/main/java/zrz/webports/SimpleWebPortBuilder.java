@@ -10,9 +10,11 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.reactivex.Flowable;
 import zrz.webports.netty.NettyHttpListener;
+import zrz.webports.netty.sni.SelfSignedSniMapper;
 import zrz.webports.spi.IncomingH2Stream;
 import zrz.webports.spi.IncomingHttpRequest;
 import zrz.webports.spi.IncomingWebSocket;
+import zrz.webports.spi.SniProvider;
 
 /**
  * A basic webport builder useful for many common use cases.
@@ -29,6 +31,13 @@ public class SimpleWebPortBuilder {
   private Supplier<Function<IncomingH2Stream, Flowable<Http2StreamFrame>>> h2;
   private Supplier<Function<IncomingWebSocket, Flowable<WebSocketFrame>>> ws;
   private Supplier<Function<IncomingHttpRequest, Flowable<HttpObject>>> http;
+
+  private SniProvider mapper;
+
+  public SimpleWebPortBuilder sni(final SniProvider mapper) {
+    this.mapper = mapper;
+    return this;
+  }
 
   public SimpleWebPortBuilder listen(final int port) {
     this.listen(Flowable.just(Integer.valueOf(port)).map(e -> HostAndPort.fromParts("::0", port)).concatWith(Flowable.never()));
@@ -57,9 +66,13 @@ public class SimpleWebPortBuilder {
 
   public WebPort build() {
 
+    if (this.mapper == null) {
+      this.mapper = new SelfSignedSniMapper();
+    }
+
     final HostAndPort target = this.listen.blockingFirst();
 
-    final DefaultWebPortContext context = new DefaultWebPortContext(this.h2, this.ws, this.http);
+    final DefaultWebPortContext context = new DefaultWebPortContext(this.h2, this.ws, this.http, this.mapper);
 
     final NettyHttpListener listener = new NettyHttpListener(target.getPort(), context);
 

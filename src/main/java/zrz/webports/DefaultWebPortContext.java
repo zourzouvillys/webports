@@ -11,34 +11,33 @@ import io.netty.handler.codec.http2.Http2MultiplexCodecBuilder;
 import io.netty.handler.codec.http2.Http2Settings;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.netty.handler.logging.LogLevel;
-import io.netty.handler.ssl.SslContext;
-import io.netty.util.AsyncMapping;
 import io.reactivex.Flowable;
 import zrz.webports.netty.h2.IngressHttp2StreamHandler;
-import zrz.webports.netty.sni.SelfSignedSniMapper;
 import zrz.webports.spi.IncomingH2Stream;
 import zrz.webports.spi.IncomingHttpRequest;
 import zrz.webports.spi.IncomingWebSocket;
+import zrz.webports.spi.SniProvider;
 
 public class DefaultWebPortContext implements WebPortContext {
 
-  private final SelfSignedSniMapper sni;
+  private final SniProvider sni;
   private final Function<IncomingH2Stream, Flowable<Http2StreamFrame>> h2;
   private final Function<IncomingWebSocket, Flowable<WebSocketFrame>> ws;
   private final Function<IncomingHttpRequest, Flowable<HttpObject>> http;
 
   public DefaultWebPortContext(final Supplier<Function<IncomingH2Stream, Flowable<Http2StreamFrame>>> h2,
 
-      final Supplier<Function<IncomingWebSocket, Flowable<WebSocketFrame>>> ws, final Supplier<Function<IncomingHttpRequest, Flowable<HttpObject>>> http) {
+      final Supplier<Function<IncomingWebSocket, Flowable<WebSocketFrame>>> ws, final Supplier<Function<IncomingHttpRequest, Flowable<HttpObject>>> http,
+      final SniProvider mapper) {
     // this.sni = new LocalSniMapper();
-    this.sni = new SelfSignedSniMapper();
+    this.sni = mapper;
     this.h2 = h2.get();
     this.ws = ws.get();
     this.http = http.get();
   }
 
   @Override
-  public AsyncMapping<? super String, ? extends SslContext> sni() {
+  public SniProvider sni() {
     return this.sni;
   }
 
