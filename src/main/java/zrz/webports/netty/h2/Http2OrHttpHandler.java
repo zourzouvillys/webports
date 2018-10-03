@@ -6,9 +6,8 @@ import javax.net.ssl.SSLHandshakeException;
 
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPipeline;
-import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.HttpHeaderValues;
-import io.netty.handler.codec.http.HttpMessage;
+import io.netty.handler.codec.http.HttpObjectAggregator;
 import io.netty.handler.codec.http.HttpServerCodec;
 import io.netty.handler.codec.http.HttpServerUpgradeHandler;
 import io.netty.handler.codec.http.HttpServerUpgradeHandler.UpgradeCodec;
@@ -21,7 +20,6 @@ import io.netty.handler.ssl.ApplicationProtocolNegotiationHandler;
 import io.netty.handler.ssl.OpenSslEngine;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.util.AsciiString;
-import io.netty.util.ReferenceCountUtil;
 import zrz.webports.WebPortContext;
 import zrz.webports.netty.http11.PlainHttpHandler;
 import zrz.webports.netty.http11.WebsocketUpgradeCodec;
@@ -121,25 +119,28 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler im
     final HttpServerCodec sourceCodec = new HttpServerCodec();
 
     p.addLast(sourceCodec);
+    p.addLast(new HttpObjectAggregator(65535, true));
 
     // allow http1.1 upgrades to h2. only ever the first request on a connection.
     p.addLast(new HttpServerUpgradeHandler(sourceCodec, this.createUpgradeFactory()));
 
     // otherwise fall back to plain http/1.1.
-    p.addLast(new SimpleChannelInboundHandler<HttpMessage>() {
+    p.addLast(Http2OrHttpHandler.this.createRawHttp1Handler());
 
-      @Override
-      protected void channelRead0(final ChannelHandlerContext ctx, final HttpMessage msg) throws Exception {
+    // new SimpleChannelInboundHandler<HttpMessage>() {
+    //
+    // @Override
+    // protected void channelRead0(final ChannelHandlerContext ctx, final HttpMessage msg) throws Exception {
+    //
+    // // it's not a h2 upgrade, so we treat as normal HTTP.
+    // ctx.pipeline().replace(this, null, Http2OrHttpHandler.this.createRawHttp1Handler());
+    //
+    // // and dispatch into it.
+    // ctx.fireChannelRead(ReferenceCountUtil.retain(msg));
+    //
+    // }
 
-        // it's not a h2 upgrade, so we treat as normal HTTP.
-        ctx.pipeline().replace(this, null, Http2OrHttpHandler.this.createRawHttp1Handler());
-
-        // and dispatch into it.
-        ctx.fireChannelRead(ReferenceCountUtil.retain(msg));
-
-      }
-
-    });
+    // });
 
   }
 

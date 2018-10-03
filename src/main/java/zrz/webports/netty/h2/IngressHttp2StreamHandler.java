@@ -6,11 +6,17 @@ import java.util.function.Function;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http2.DefaultHttp2ResetFrame;
+import io.netty.handler.codec.http2.Http2DataFrame;
+import io.netty.handler.codec.http2.Http2Error;
+import io.netty.handler.codec.http2.Http2Headers;
+import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
+import io.reactivex.functions.Predicate;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
 import zrz.webports.spi.IncomingH2Stream;
@@ -30,6 +36,17 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
 
   private final static AttributeKey<ActiveStream> BINDER = AttributeKey.valueOf("H2-BINNDING");
 
+  private static boolean isEndOfStream(final Http2StreamFrame frame) {
+    switch (frame.name()) {
+      case "DATA":
+        return ((Http2DataFrame) frame).isEndStream();
+      case "HEADERS":
+        return ((Http2HeadersFrame) frame).isEndStream();
+      default:
+        return true;
+    }
+  }
+
   private class ActiveStream implements IncomingH2Stream {
 
     // queue of received frames that the consumer has not yet consumed.
@@ -38,9 +55,11 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     private final Flowable<Http2StreamFrame> txflow;
     private Disposable handle;
     private final AtomicBoolean willFlush = new AtomicBoolean(true);
+    private final Http2HeadersFrame headers;
 
-    public ActiveStream(final ChannelHandlerContext ctx, final Http2StreamFrame headers) {
+    public ActiveStream(final ChannelHandlerContext ctx, final Http2HeadersFrame headers) {
       this.ctx = ctx;
+      this.headers = headers;
       this.txflow = IngressHttp2StreamHandler.this.factory.apply(this);
     }
 
@@ -77,7 +96,9 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
             },
             err -> {
 
-              log.warn("H2 stream error caused by Flowable error");
+              // an error causes an unnorderly shutdown of the stream.
+              log.warn("H2 stream error caused by transmitting Flowable error: {}", err.getMessage(), err);
+              this.ctx.writeAndFlush(new DefaultHttp2ResetFrame(Http2Error.INTERNAL_ERROR));
 
             },
             () -> {
@@ -100,7 +121,17 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
 
     @Override
     public Flowable<Http2StreamFrame> incoming() {
-      return this.rxqueue;
+      return this.rxqueue.takeUntil((Predicate<Http2StreamFrame>) frame -> isEndOfStream(frame));
+    }
+
+    @Override
+    public Http2Headers headers() {
+      return this.headers.headers();
+    }
+
+    @Override
+    public boolean isEndStream() {
+      return this.headers.isEndStream();
     }
 
   }
@@ -126,7 +157,7 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
       }
 
       if (current == null) {
-        current = new ActiveStream(ctx, frame);
+        current = new ActiveStream(ctx, (Http2HeadersFrame) frame);
         binding.set(current);
       }
       else {

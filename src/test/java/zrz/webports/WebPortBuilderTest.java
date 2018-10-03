@@ -2,9 +2,11 @@ package zrz.webports;
 
 import org.junit.Test;
 
+import io.netty.handler.codec.http.HttpObject;
 import io.reactivex.Flowable;
 import zrz.webports.http.WebPortHttp;
 import zrz.webports.http.WebPortWebSocket;
+import zrz.webports.spi.IncomingH2Stream;
 
 public class WebPortBuilderTest {
 
@@ -12,8 +14,8 @@ public class WebPortBuilderTest {
   public void test() throws Exception {
 
     WebPorts.simpleBuilder()
-        .listen(0)
-        .h2(() -> req -> WebPortHttp.staticResponseH2(403, "Errr? (H2)"))
+        .listen(9991)
+        .h2(() -> req -> handler(req).flatMap(WebPortHttp::toHttp2))
         .websocket(() -> req -> {
 
           req.incoming()
@@ -25,6 +27,12 @@ public class WebPortBuilderTest {
         .http(() -> req -> WebPortHttp.staticResponse(404, "Errr?"))
         .build();
 
+    Thread.sleep(10000);
+
+  }
+
+  static Flowable<HttpObject> handler(final IncomingH2Stream req) {
+    return WebPortHttp.staticResponse(401, "Errr?");
   }
 
 }

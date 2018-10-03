@@ -17,9 +17,18 @@ public interface IncomingH2Stream {
    * an incoming h2 stream always starts with headers. this contains the header that initiated it.
    */
 
-  default Http2Headers headers() {
-    return null;
-  }
+  Http2Headers headers();
+
+  /**
+   * true if there was only a single header frame.
+   */
+
+  boolean isEndStream();
+
+  /**
+   *
+   * @return
+   */
 
   Flowable<Http2StreamFrame> incoming();
 
