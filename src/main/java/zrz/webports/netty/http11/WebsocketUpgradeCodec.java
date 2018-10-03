@@ -149,17 +149,21 @@ public class WebsocketUpgradeCodec implements UpgradeCodec {
 
     final ChannelPipeline p = channel.pipeline();
 
-    if (p.get(Http1Initializer.class) != null) {
-      p.remove(Http1Initializer.class);
+    if (p.get("http1handler") != null) {
+      p.remove("http1handler");
+    }
+
+    if (p.get("httpagg") != null) {
+      p.remove("httpagg");
     }
 
     final UnicastProcessor<WebSocketFrame> rxqueue = UnicastProcessor.create();
 
     final Flowable<WebSocketFrame> handler = this.ctx.websocket(() -> rxqueue);
 
-    p.addAfter(ctx.name(), "wshandler", new WebSocketFrameHandler(this.ctx, this.selectedSubprotocol, handler, rxqueue));
-    p.addAfter(ctx.name(), "wsdecoder", this.newWebsocketDecoder());
-    p.addAfter(ctx.name(), "wsencoder", this.newWebSocketEncoder());
+    p.addLast("wsdecoder", this.newWebsocketDecoder());
+    p.addLast("wsencoder", this.newWebSocketEncoder());
+    p.addLast("wshandler", new WebSocketFrameHandler(this.ctx, this.selectedSubprotocol, handler, rxqueue));
 
     handler.subscribe(
         frame -> channel.writeAndFlush(frame),

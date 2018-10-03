@@ -66,6 +66,7 @@ public class WebPortHttp {
       final boolean validateHeaders = true;
 
       if (frame instanceof Http2HeadersFrame) {
+
         final Http2HeadersFrame headersFrame = (Http2HeadersFrame) frame;
         final Http2Headers headers = headersFrame.headers();
         final Http2FrameStream stream = headersFrame.stream();
@@ -81,10 +82,10 @@ public class WebPortHttp {
         }
 
         if (headersFrame.isEndStream()) {
+
           if ((headers.method() == null) && (status == null)) {
             final LastHttpContent last = new DefaultLastHttpContent(Unpooled.EMPTY_BUFFER, validateHeaders);
-            HttpConversionUtil.addHttp2ToHttpHeaders(id, headers, last.trailingHeaders(),
-                HttpVersion.HTTP_1_1, true, true);
+            HttpConversionUtil.addHttp2ToHttpHeaders(id, headers, last.trailingHeaders(), HttpVersion.HTTP_1_1, true, true);
             return last;
           }
           else {

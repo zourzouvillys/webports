@@ -51,6 +51,7 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
     res.subscribe(
         msg -> {
+          log.debug("sending {}", msg);
           ctx.writeAndFlush(msg);
         },
         err -> {

@@ -100,7 +100,8 @@ public class FileBasedSniMapper implements SniProvider {
       ciphers.addAll(Http2SecurityUtil.CIPHERS);
 
       ciphers.add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384");
-      ciphers.add("TLS_RSA_WITH_AES_256_GCM_SHA384");
+      ciphers.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
+      ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
 
       final InternetDomainName idn = InternetDomainName.from(_name);
 
@@ -119,6 +120,7 @@ public class FileBasedSniMapper implements SniProvider {
               certdir.resolve("tls.crt").toFile(),
               certdir.resolve("tls.key").toFile())
           .ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
+          .protocols("TLSv1.3", "TLSv1.2")
           // .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
           .applicationProtocolConfig(
               new ApplicationProtocolConfig(
