@@ -24,20 +24,10 @@ public interface IncomingWebSocket {
    * The path of the websocket.
    */
 
-  default String path() {
-    return null;
-  }
+  String path();
 
   /**
-   * the name provided in the HTTP Host header.
-   */
-
-  default String host() {
-    return null;
-  }
-
-  /**
-   * List of the requested protocols.
+   * List of the requested WS protocols.
    */
 
   default String[] protocols() {
@@ -45,7 +35,7 @@ public interface IncomingWebSocket {
   }
 
   /**
-   * List of supported extensions.
+   * List of supported WS extensions.
    */
 
   default String[] extensions() {
@@ -53,16 +43,25 @@ public interface IncomingWebSocket {
   }
 
   /**
+   * the requested authority (e.h, Host header in http/1.1, :authority in h2).
+   */
+
+  String authority();
+
+  /**
    * The Origin header from the request.
    */
 
-  default String origin() {
-    return null;
-  }
+  String origin();
 
   /**
-   *
-   * @return
+   * authorization headers.
+   */
+
+  Iterable<String> authorizations();
+
+  /**
+   * the incoming frames, if accepted.
    */
 
   Flowable<WebSocketFrame> incoming();

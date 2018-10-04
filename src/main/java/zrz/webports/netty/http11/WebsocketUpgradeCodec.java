@@ -24,6 +24,7 @@ import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
 import zrz.webports.netty.wss.WebSocketFrameHandler;
+import zrz.webports.spi.IncomingWebSocket;
 
 /**
  * UpgradeCodec implementation for Websocket. only supports v13, and only over http/1.1 - websockets not supported over
@@ -159,7 +160,34 @@ public class WebsocketUpgradeCodec implements UpgradeCodec {
 
     final UnicastProcessor<WebSocketFrame> rxqueue = UnicastProcessor.create();
 
-    final Flowable<WebSocketFrame> handler = this.ctx.websocket(() -> rxqueue);
+    final Flowable<WebSocketFrame> handler = this.ctx.websocket(new IncomingWebSocket() {
+
+      @Override
+      public String authority() {
+        return req.headers().get(HttpHeaderNames.HOST);
+      }
+
+      @Override
+      public String path() {
+        return req.uri();
+      }
+
+      @Override
+      public String origin() {
+        return req.headers().getAsString(HttpHeaderNames.ORIGIN);
+      }
+
+      @Override
+      public Flowable<WebSocketFrame> incoming() {
+        return rxqueue;
+      }
+
+      @Override
+      public Iterable<String> authorizations() {
+        return req.headers().getAllAsString(HttpHeaderNames.AUTHORIZATION);
+      }
+
+    });
 
     p.addLast("wsdecoder", this.newWebsocketDecoder());
     p.addLast("wsencoder", this.newWebSocketEncoder());
