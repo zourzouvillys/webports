@@ -191,7 +191,8 @@ public class WebsocketUpgradeCodec implements UpgradeCodec {
 
     p.addLast("wsdecoder", this.newWebsocketDecoder());
     p.addLast("wsencoder", this.newWebSocketEncoder());
-    p.addLast("wshandler", new WebSocketFrameHandler(this.ctx, this.selectedSubprotocol, handler, rxqueue));
+
+    p.addLast("wshandler", new WebSocketFrameHandler(this.ctx, this.selectedSubprotocol, handler, rxqueue, ctx.channel()));
 
     handler.subscribe(
         frame -> channel.writeAndFlush(frame),

@@ -32,4 +32,6 @@ public interface IncomingH2Stream {
 
   Flowable<Http2StreamFrame> incoming();
 
+  HttpTransportInfo transport();
+
 }

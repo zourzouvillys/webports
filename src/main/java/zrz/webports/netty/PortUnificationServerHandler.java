@@ -21,6 +21,7 @@ import zrz.webports.netty.sni.LocalSniHandler;
 
 public class PortUnificationServerHandler extends ByteToMessageDecoder {
 
+  private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(PortUnificationServerHandler.class);
   private final WebPortContext ctx;
 
   public PortUnificationServerHandler(final WebPortContext ctx) {
@@ -76,11 +77,17 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
   }
 
   private void enableSsl(final ChannelHandlerContext ctx) {
+
     final ChannelPipeline p = ctx.pipeline();
-    p.addLast(new LocalSniHandler(this.ctx.sni()));
+
+    p.addAfter("PortUnificationServerHandler#0", "LocalSniHandler#0", new LocalSniHandler(this.ctx.sni()));
     // TLS can have both http/1.1 or h2.
     p.addLast(new Http2OrHttpHandler(this.ctx));
+
     p.remove(this);
+
+    log.trace("enabled SSL, {}", p.names());
+
   }
 
   private void switchToHttp(final ChannelHandlerContext ctx) {

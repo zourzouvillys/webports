@@ -29,4 +29,6 @@ public interface IncomingHttpRequest {
 
   String path();
 
+  HttpTransportInfo transport();
+
 }

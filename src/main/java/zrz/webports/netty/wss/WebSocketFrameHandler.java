@@ -1,5 +1,6 @@
 package zrz.webports.netty.wss;
 
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
@@ -11,6 +12,7 @@ import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
+import zrz.webports.netty.NettyHttpTransportInfo;
 
 public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocketFrame> {
 
@@ -19,16 +21,18 @@ public class WebSocketFrameHandler extends SimpleChannelInboundHandler<WebSocket
   private final String selectedSubprotocol;
   private final UnicastProcessor<WebSocketFrame> rxqueue;
   private final Flowable<WebSocketFrame> txmit;
+  private final NettyHttpTransportInfo transport;
 
   public WebSocketFrameHandler(
       final WebPortContext ctx,
       final String selectedSubprotocol,
       final Flowable<WebSocketFrame> handler,
-      final UnicastProcessor<WebSocketFrame> rxqueue) {
+      final UnicastProcessor<WebSocketFrame> rxqueue, final Channel channel) {
     this.ctx = ctx;
     this.selectedSubprotocol = selectedSubprotocol;
     this.rxqueue = rxqueue;
     this.txmit = handler;
+    this.transport = NettyHttpTransportInfo.fromChannel(channel);
   }
 
   @Override

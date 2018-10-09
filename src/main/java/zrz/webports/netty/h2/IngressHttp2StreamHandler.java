@@ -19,6 +19,8 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Predicate;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
+import zrz.webports.netty.NettyHttpTransportInfo;
+import zrz.webports.spi.HttpTransportInfo;
 import zrz.webports.spi.IncomingH2Stream;
 
 /**
@@ -56,10 +58,12 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     private Disposable handle;
     private final AtomicBoolean willFlush = new AtomicBoolean(true);
     private final Http2HeadersFrame headers;
+    private final NettyHttpTransportInfo transport;
 
     public ActiveStream(final ChannelHandlerContext ctx, final Http2HeadersFrame headers) {
       this.ctx = ctx;
       this.headers = headers;
+      this.transport = NettyHttpTransportInfo.fromChannel(ctx.channel().parent());
       this.txflow = IngressHttp2StreamHandler.this.factory.apply(this);
     }
 
@@ -132,6 +136,11 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     @Override
     public boolean isEndStream() {
       return this.headers.isEndStream();
+    }
+
+    @Override
+    public HttpTransportInfo transport() {
+      return this.transport;
     }
 
   }

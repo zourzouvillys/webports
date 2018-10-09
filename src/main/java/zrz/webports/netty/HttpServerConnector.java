@@ -7,6 +7,8 @@ import io.netty.channel.ChannelInboundHandlerAdapter;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
 import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.ssl.SniCompletionEvent;
+import io.netty.util.AttributeKey;
 import zrz.webports.WebPortContext;
 
 public class HttpServerConnector extends ChannelInitializer<SocketChannel> {
@@ -30,11 +32,14 @@ public class HttpServerConnector extends ChannelInitializer<SocketChannel> {
     final ChannelPipeline p = ch.pipeline();
     p.addLast(new PortUnificationServerHandler(this.ctx));
     p.addLast(this.eventLogger);
+    log.info("initialized channel: {}", ch.pipeline().names());
   }
 
   /**
    * logging of user events.
    */
+
+  public final static AttributeKey<SniCompletionEvent> SNI = AttributeKey.valueOf("SNI-COMPLETION");
 
   @Sharable
   private static class UserEventLogger extends ChannelInboundHandlerAdapter {
@@ -42,6 +47,9 @@ public class HttpServerConnector extends ChannelInitializer<SocketChannel> {
     @Override
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) {
       log.info("user event: " + evt);
+      if (evt instanceof SniCompletionEvent) {
+        ctx.channel().attr(SNI).set((SniCompletionEvent) evt);
+      }
       ctx.fireUserEventTriggered(evt);
     }
 

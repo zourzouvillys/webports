@@ -9,6 +9,8 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.reactivex.Flowable;
 import zrz.webports.WebPortContext;
+import zrz.webports.netty.NettyHttpTransportInfo;
+import zrz.webports.spi.HttpTransportInfo;
 import zrz.webports.spi.IncomingHttpRequest;
 
 public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
@@ -22,6 +24,8 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
   @Override
   protected void channelRead0(final ChannelHandlerContext ctx, final HttpRequest req) throws Exception {
+
+    final NettyHttpTransportInfo transport = NettyHttpTransportInfo.fromChannel(ctx.channel());
 
     final Flowable<HttpObject> res = this.ctx.http(
         new IncomingHttpRequest() {
@@ -45,6 +49,11 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
           @Override
           public String path() {
             return req.uri();
+          }
+
+          @Override
+          public HttpTransportInfo transport() {
+            return transport;
           }
 
         });
