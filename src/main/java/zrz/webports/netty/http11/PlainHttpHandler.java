@@ -1,5 +1,6 @@
 package zrz.webports.netty.http11;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
@@ -26,6 +27,15 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
   protected void channelRead0(final ChannelHandlerContext ctx, final HttpRequest req) throws Exception {
 
     final NettyHttpTransportInfo transport = NettyHttpTransportInfo.fromChannel(ctx.channel());
+
+    ByteBuf content;
+
+    if (req instanceof FullHttpRequest) {
+      content = ((FullHttpRequest) req).content().retain();
+    }
+    else {
+      content = null;
+    }
 
     final Flowable<HttpObject> res = this.ctx.http(
         new IncomingHttpRequest() {
@@ -66,9 +76,15 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
         err -> {
           log.warn("error on transmission stream: {}", err.getMessage(), err);
           ctx.close();
+          if (content != null) {
+            content.release();
+          }
         },
         () -> {
           ctx.close();
+          if (content != null) {
+            content.release();
+          }
         });
 
   }
