@@ -32,7 +32,7 @@ public class HttpServerConnector extends ChannelInitializer<SocketChannel> {
     final ChannelPipeline p = ch.pipeline();
     p.addLast(new PortUnificationServerHandler(this.ctx));
     p.addLast(this.eventLogger);
-    log.info("initialized channel: {}", ch.pipeline().names());
+    log.trace("initialized channel: {}", ch.pipeline().names());
   }
 
   /**
@@ -46,7 +46,7 @@ public class HttpServerConnector extends ChannelInitializer<SocketChannel> {
 
     @Override
     public void userEventTriggered(final ChannelHandlerContext ctx, final Object evt) {
-      log.info("user event: " + evt);
+      log.debug("user event: " + evt);
       if (evt instanceof SniCompletionEvent) {
         ctx.channel().attr(SNI).set((SniCompletionEvent) evt);
       }

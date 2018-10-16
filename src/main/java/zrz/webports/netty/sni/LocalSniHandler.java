@@ -24,6 +24,7 @@ public class LocalSniHandler extends SniHandler {
 
   @Override
   protected Future<SslContext> lookup(final ChannelHandlerContext ctx, final String hostname) throws Exception {
+    log.trace("looking up host for SNI {}", hostname);
     return this.mapping.map(hostname, ctx.executor().<SslContext>newPromise());
   }
 

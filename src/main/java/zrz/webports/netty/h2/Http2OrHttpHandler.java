@@ -50,6 +50,12 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
   @Override
   protected void configurePipeline(final ChannelHandlerContext ctx, final String protocol) throws Exception {
 
+    if ("acme-tls/1".equals(protocol)) {
+      log.info("using acme-tls/1");
+      this.configureAcmeTls(ctx);
+      return;
+    }
+
     if (ApplicationProtocolNames.HTTP_2.equals(protocol)) {
       this.configureHttp2(ctx);
       return;
@@ -62,6 +68,11 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
     throw new IllegalStateException("unknown protocol: " + protocol);
 
+  }
+
+  private void configureAcmeTls(final ChannelHandlerContext ctx) {
+    // nothing to do, ACME client only uses to generate cert.
+    ctx.channel().close();
   }
 
   /**

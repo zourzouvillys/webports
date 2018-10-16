@@ -2,7 +2,6 @@ package zrz.webports.netty;
 
 import java.net.SocketAddress;
 import java.security.Principal;
-import java.util.Arrays;
 
 import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLSession;
@@ -47,7 +46,6 @@ public class NettyHttpTransportInfo implements HttpTransportInfo {
       this.protocol = session.getProtocol();
       this.cipherSuite = session.getCipherSuite();
       this.localPrincipal = session.getLocalPrincipal();
-      log.info("valiues: {}", Arrays.asList(engine.getSession().getValueNames()));
     }
   }
 
@@ -71,6 +69,47 @@ public class NettyHttpTransportInfo implements HttpTransportInfo {
         this.localPrincipal + " " +
         this.sni;
 
+  }
+
+  @Override
+  public boolean isSecure() {
+    return this.isEncrypted;
+  }
+
+  @Override
+  public String applicationProtocol() {
+    return this.applicationProtocol;
+  }
+
+  @Override
+  public String protocol() {
+    return this.protocol;
+  }
+
+  @Override
+  public Principal localPrincipal() {
+    return this.localPrincipal;
+  }
+
+  @Override
+  public String localServerName() {
+    if (this.sni == null) {
+      return null;
+    }
+    else if (!this.sni.isSuccess()) {
+      return null;
+    }
+    return this.sni.hostname();
+  }
+
+  @Override
+  public SocketAddress localAddress() {
+    return this.local;
+  }
+
+  @Override
+  public SocketAddress remoteAddress() {
+    return this.remote;
   }
 
 }

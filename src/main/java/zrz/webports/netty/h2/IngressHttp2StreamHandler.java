@@ -44,7 +44,12 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
         return ((Http2DataFrame) frame).isEndStream();
       case "HEADERS":
         return ((Http2HeadersFrame) frame).isEndStream();
+      case "WINDOW_UPDATE":
+        return false;
+      case "RESET":
+        return true;
       default:
+        log.error("unknown frame for stream: {}", frame.name());
         return true;
     }
   }

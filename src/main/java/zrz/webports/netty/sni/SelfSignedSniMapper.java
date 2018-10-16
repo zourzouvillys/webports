@@ -8,7 +8,6 @@ import java.util.Set;
 
 import javax.net.ssl.SSLException;
 
-import io.netty.handler.codec.http2.Http2SecurityUtil;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.ApplicationProtocolNames;
 import io.netty.handler.ssl.SslContext;
@@ -40,10 +39,64 @@ public class SelfSignedSniMapper implements SniProvider {
 
         final Set<String> ciphers = new HashSet<>();
 
-        ciphers.addAll(Http2SecurityUtil.CIPHERS);
+        // ciphers.addAll(Http2SecurityUtil.CIPHERS);
         ciphers.add("TLS_DHE_DSS_WITH_AES_256_GCM_SHA384");
         ciphers.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384");
         ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
+
+        ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
+        /* openssl = ECDHE-RSA-AES256-GCM-SHA384 */
+        ciphers.add("TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384");
+        /* openssl = ECDHE-ECDSA-CHACHA20-POLY1305 */
+        // ciphers.add("TLS_ECDHE_ECDSA_WITH_CHACHA20_POLY1305_SHA256");
+        /* openssl = ECDHE-RSA-CHACHA20-POLY1305 */
+        // ciphers.add("TLS_ECDHE_RSA_WITH_CHACHA20_POLY1305_SHA256");
+        /* openssl = ECDHE-ECDSA-AES128-GCM-SHA256 */
+        ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
+
+        /* REQUIRED BY HTTP/2 SPEC */
+        /* openssl = ECDHE-RSA-AES128-GCM-SHA256 */
+        ciphers.add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+
+        // GCM (Galois/Counter Mode) requires JDK 8.
+        ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384");
+        ciphers.add("TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256");
+        ciphers.add("TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256");
+        ciphers.add("TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA");
+        // AES256 requires JCE unlimited strength jurisdiction policy files.
+        ciphers.add("TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA");
+        // GCM (Galois/Counter Mode) requires JDK 8.
+        ciphers.add("TLS_RSA_WITH_AES_128_GCM_SHA256");
+        ciphers.add("TLS_RSA_WITH_AES_128_CBC_SHA");
+        // AES256 requires JCE unlimited strength jurisdiction policy files.
+        ciphers.add("TLS_RSA_WITH_AES_256_CBC_SHA");
+
+        // TLS_ECDHE_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDHE_ECDSA_WITH_AES_128_GCM_SHA256,
+        // TLS_ECDHE_RSA_WITH_AES_256_GCM_SHA384, TLS_RSA_WITH_AES_256_GCM_SHA384,
+        // TLS_ECDH_ECDSA_WITH_AES_256_GCM_SHA384, TLS_ECDH_RSA_WITH_AES_256_GCM_SHA384,
+        // TLS_DHE_RSA_WITH_AES_256_GCM_SHA384, TLS_DHE_DSS_WITH_AES_256_GCM_SHA384,
+        // TLS_ECDHE_RSA_WITH_AES_128_GCM_SHA256, TLS_RSA_WITH_AES_128_GCM_SHA256,
+        // TLS_ECDH_ECDSA_WITH_AES_128_GCM_SHA256, TLS_ECDH_RSA_WITH_AES_128_GCM_SHA256,
+        // TLS_DHE_RSA_WITH_AES_128_GCM_SHA256, TLS_DHE_DSS_WITH_AES_128_GCM_SHA256,
+        // TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA384, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA384,
+        // TLS_RSA_WITH_AES_256_CBC_SHA256, TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA384,
+        // TLS_ECDH_RSA_WITH_AES_256_CBC_SHA384, TLS_DHE_RSA_WITH_AES_256_CBC_SHA256,
+        // TLS_DHE_DSS_WITH_AES_256_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_256_CBC_SHA,
+        // TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA, TLS_ECDH_ECDSA_WITH_AES_256_CBC_SHA,
+        // TLS_ECDH_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_DSS_WITH_AES_256_CBC_SHA,
+        // TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA256, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA256,
+        // TLS_RSA_WITH_AES_128_CBC_SHA256, TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA256,
+        // TLS_ECDH_RSA_WITH_AES_128_CBC_SHA256, TLS_DHE_RSA_WITH_AES_128_CBC_SHA256,
+        // TLS_DHE_DSS_WITH_AES_128_CBC_SHA256, TLS_ECDHE_ECDSA_WITH_AES_128_CBC_SHA,
+        // TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_128_CBC_SHA, TLS_ECDH_ECDSA_WITH_AES_128_CBC_SHA,
+        // TLS_ECDH_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA, TLS_DHE_DSS_WITH_AES_128_CBC_SHA,
+        // TLS_EMPTY_RENEGOTIATION_INFO_SCSV, TLS_DH_anon_WITH_AES_256_GCM_SHA384, TLS_DH_anon_WITH_AES_128_GCM_SHA256,
+        // TLS_DH_anon_WITH_AES_256_CBC_SHA256, TLS_ECDH_anon_WITH_AES_256_CBC_SHA, TLS_DH_anon_WITH_AES_256_CBC_SHA,
+        // TLS_DH_anon_WITH_AES_128_CBC_SHA256, TLS_ECDH_anon_WITH_AES_128_CBC_SHA, TLS_DH_anon_WITH_AES_128_CBC_SHA,
+        // SSL_RSA_WITH_DES_CBC_SHA, SSL_DHE_RSA_WITH_DES_CBC_SHA, SSL_DHE_DSS_WITH_DES_CBC_SHA,
+        // SSL_DH_anon_WITH_DES_CBC_SHA, TLS_RSA_WITH_NULL_SHA256, TLS_ECDHE_ECDSA_WITH_NULL_SHA,
+        // TLS_ECDHE_RSA_WITH_NULL_SHA, SSL_RSA_WITH_NULL_SHA, TLS_ECDH_ECDSA_WITH_NULL_SHA, TLS_ECDH_RSA_WITH_NULL_SHA,
+        // TLS_ECDH_anon_WITH_NULL_SHA, SSL_RSA_WITH_NULL_MD5, TLS_KRB5_WITH_DES_CBC_SHA, TLS_KRB5_WITH_DES_CBC_MD5
 
         final SelfSignedCertificate cert = new SelfSignedCertificate();
 
@@ -56,11 +109,12 @@ public class SelfSignedSniMapper implements SniProvider {
                     ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
                     ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
                     ApplicationProtocolNames.HTTP_2,
-                    ApplicationProtocolNames.HTTP_1_1))
+                    ApplicationProtocolNames.HTTP_1_1,
+                    "acme-tls/1"))
             .build();
 
       }
-      catch (final SSLException | CertificateException e) {
+      catch (final CertificateException | SSLException e) {
         throw new RuntimeException(e);
       }
     }

@@ -1,15 +1,27 @@
 package zrz.webports.netty.sni;
 
+import java.io.ByteArrayInputStream;
+import java.io.File;
+import java.io.FileReader;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.security.PrivateKey;
+import java.security.cert.Certificate;
+import java.security.cert.CertificateFactory;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 
 import javax.net.ssl.SSLException;
+
+import org.bouncycastle.util.io.pem.PemObject;
+import org.bouncycastle.util.io.pem.PemReader;
+import org.shredzone.acme4j.util.KeyPairUtils;
 
 import com.google.common.net.InternetDomainName;
 
@@ -81,8 +93,15 @@ public class FileBasedSniMapper implements SniProvider {
   public Flowable<SslContext> map(String input) {
 
     if (input == null) {
-      // default ...
-      input = this.wildcards.keySet().iterator().next().toString();
+
+      if (this.wildcards.isEmpty()) {
+        input = this.paths.keySet().iterator().next().toString();
+      }
+      else {
+        // default ...
+        input = this.wildcards.keySet().iterator().next().toString();
+      }
+
     }
 
     // TODO: cache
@@ -115,10 +134,12 @@ public class FileBasedSniMapper implements SniProvider {
 
       log.debug("using {} for {}", certdir, idn);
 
+      final PrivateKey key = this.loadKeyPair(certdir.resolve("tls.key"));
+
+      final X509Certificate[] certs = this.loadCerts(certdir.resolve("tls.crt"));
+
       return SslContextBuilder
-          .forServer(
-              certdir.resolve("tls.crt").toFile(),
-              certdir.resolve("tls.key").toFile())
+          .forServer(key, certs)
           .ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
           .protocols("TLSv1.3", "TLSv1.2")
           // .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
@@ -128,13 +149,61 @@ public class FileBasedSniMapper implements SniProvider {
                   ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
                   ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
                   ApplicationProtocolNames.HTTP_2,
-                  ApplicationProtocolNames.HTTP_1_1))
+                  ApplicationProtocolNames.HTTP_1_1,
+                  "acme-tls/1"))
           .build();
     }
     catch (final SSLException e) {
       throw new RuntimeException(e);
     }
 
+  }
+
+  private X509Certificate[] loadCerts(final Path resolve) {
+    final ArrayList<X509Certificate> certs = new ArrayList<>();
+    try {
+
+      final File file = resolve.toFile();
+
+      final PemReader reader = new PemReader(new FileReader(file));
+
+      final CertificateFactory certificateFactory = CertificateFactory.getInstance("X509");
+
+      PemObject pemObject = null;
+
+      while ((pemObject = reader.readPemObject()) != null) {
+
+        final byte[] x509Data = pemObject.getContent();
+
+        final Certificate certificate = certificateFactory.generateCertificate(
+            new ByteArrayInputStream(x509Data));
+
+        if (certificate instanceof X509Certificate) {
+          certs.add((X509Certificate) certificate);
+        }
+
+      }
+
+    }
+    catch (final Exception ex) {
+      throw new RuntimeException(ex);
+    }
+    if (certs.size() == 0) {
+      throw new IllegalArgumentException("Unable to decode certificate chain: no certs found");
+    }
+
+    return certs.toArray(new X509Certificate[certs.size()]);
+
+  }
+
+  private PrivateKey loadKeyPair(final Path resolve) {
+    try {
+      return KeyPairUtils.readKeyPair(new FileReader(resolve.toFile())).getPrivate();
+    }
+    catch (final IOException e) {
+      // TODO Auto-generated catch block
+      throw new RuntimeException(e);
+    }
   }
 
 }

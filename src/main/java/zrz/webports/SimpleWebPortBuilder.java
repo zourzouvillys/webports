@@ -90,6 +90,11 @@ public class SimpleWebPortBuilder {
         return this;
       }
 
+      @Override
+      public void awaitTerminated() {
+        listener.awaitTerminated();
+      }
+
     };
 
   }
