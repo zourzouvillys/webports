@@ -1,13 +1,14 @@
 
 apply plugin: 'java-library'
 apply plugin: 'eclipse'
+apply plugin: 'maven'
 
 repositories {
   mavenCentral()
   jcenter()
 }
   
-group = 'io.zrz.webports'
+group = 'com.github.zourzouvillys'
 
 version = 'master-SNAPSHOT'
   
@@ -58,5 +59,58 @@ dependencies {
   testImplementation  'ch.qos.logback:logback-classic:1.2.3'  
    
 }
+
+// --------------------------------------------------
+// install
+// --------------------------------------------------
+
+
+task sourcesJar(type: Jar, dependsOn: classes) {
+  classifier = 'sources'
+  from sourceSets.main.allSource
+}
+
+tasks.withType(Javadoc) {
+  options.addStringOption('Xdoclint:none', '-quiet')
+}
+    
+task javadocJar(type: Jar, dependsOn: javadoc) {
+  classifier = 'javadoc'
+  from javadoc.destinationDir
+}
+
+javadoc {
+  options.addBooleanOption('html5', true)
+}  
+
+artifacts {
+  archives jar
+  archives sourcesJar
+  archives javadocJar
+}
+
+javadoc {
+  title = "ZRZ WebPorts"
+  failOnError = false
+}
+
+install {
+  repositories.mavenInstaller {
+    pom.project {
+      licenses {
+        license {
+          name 'The Apache Software License, Version 2.0'
+          url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
+          distribution 'repo'
+        }
+      }
+    }
+  }
+}
+
+task wrapper(type: Wrapper) {
+  gradleVersion = '4.8'
+}
+
 
 

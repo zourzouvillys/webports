@@ -27,8 +27,6 @@ public class WebPortBuilderTest {
         .http(() -> req -> WebPortHttp.staticResponse(404, "Errr?"))
         .build();
 
-    Thread.sleep(10000);
-
   }
 
   static Flowable<HttpObject> handler(final IncomingH2Stream req) {
