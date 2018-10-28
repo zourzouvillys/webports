@@ -23,8 +23,8 @@ import io.netty.util.CharsetUtil;
 import io.reactivex.Flowable;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
+import zrz.webports.api.IncomingWebSocket;
 import zrz.webports.netty.wss.WebSocketFrameHandler;
-import zrz.webports.spi.IncomingWebSocket;
 
 /**
  * UpgradeCodec implementation for Websocket. only supports v13, and only over http/1.1 - websockets not supported over

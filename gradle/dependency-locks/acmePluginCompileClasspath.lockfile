@@ -1,0 +1,9 @@
+# This is a Gradle generated file for dependency locking.
+# Manual edits can break the build and are not advised.
+# This file is expected to be part of source control.
+org.bitbucket.b_c:jose4j:0.6.4
+org.bouncycastle:bcpkix-jdk15on:1.60
+org.bouncycastle:bcprov-jdk15on:1.60
+org.shredzone.acme4j:acme4j-client:2.3
+org.shredzone.acme4j:acme4j-utils:2.3
+org.slf4j:slf4j-api:1.7.25

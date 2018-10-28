@@ -4,9 +4,9 @@ import org.junit.Test;
 
 import io.netty.handler.codec.http.HttpObject;
 import io.reactivex.Flowable;
+import zrz.webports.api.IncomingH2Stream;
 import zrz.webports.http.WebPortHttp;
 import zrz.webports.http.WebPortWebSocket;
-import zrz.webports.spi.IncomingH2Stream;
 
 public class WebPortBuilderTest {
 

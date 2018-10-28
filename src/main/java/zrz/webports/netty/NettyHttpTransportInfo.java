@@ -9,9 +9,9 @@ import javax.net.ssl.SSLSession;
 import io.netty.channel.Channel;
 import io.netty.handler.ssl.SniCompletionEvent;
 import io.netty.handler.ssl.SslHandler;
-import zrz.webports.spi.HttpTransportInfo;
+import zrz.webports.api.WebPortTransportInfo;
 
-public class NettyHttpTransportInfo implements HttpTransportInfo {
+public class NettyHttpTransportInfo implements WebPortTransportInfo {
 
   private static final org.slf4j.Logger log = org.slf4j.LoggerFactory.getLogger(NettyHttpTransportInfo.class);
 

@@ -10,9 +10,9 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.reactivex.Flowable;
 import zrz.webports.WebPortContext;
+import zrz.webports.api.WebPortTransportInfo;
+import zrz.webports.api.IncomingHttpRequest;
 import zrz.webports.netty.NettyHttpTransportInfo;
-import zrz.webports.spi.HttpTransportInfo;
-import zrz.webports.spi.IncomingHttpRequest;
 
 public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
@@ -62,7 +62,7 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
           }
 
           @Override
-          public HttpTransportInfo transport() {
+          public WebPortTransportInfo transport() {
             return transport;
           }
 

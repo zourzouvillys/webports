@@ -9,11 +9,11 @@ import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.reactivex.Flowable;
+import zrz.webports.api.IncomingH2Stream;
+import zrz.webports.api.IncomingHttpRequest;
+import zrz.webports.api.IncomingWebSocket;
 import zrz.webports.netty.NettyHttpListener;
 import zrz.webports.netty.sni.SelfSignedSniMapper;
-import zrz.webports.spi.IncomingH2Stream;
-import zrz.webports.spi.IncomingHttpRequest;
-import zrz.webports.spi.IncomingWebSocket;
 import zrz.webports.spi.SniProvider;
 
 /**

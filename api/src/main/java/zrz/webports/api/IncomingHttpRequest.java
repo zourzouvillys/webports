@@ -1,4 +1,4 @@
-package zrz.webports.spi;
+package zrz.webports.api;
 
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpHeaders;
@@ -20,15 +20,27 @@ public interface IncomingHttpRequest {
   HttpHeaders headers();
 
   /**
-   * the HTTP contennt (if any), which will be one or more chunks until the chunk is a LastHttpContennt.
+   * the HTTP content (if any), which will be one or more chunks until the chunk is a LastHttpContennt.
    */
 
   Flowable<HttpContent> incoming();
 
+  /**
+   * the HTTP method for this request.
+   */
+
   CharSequence method();
+
+  /**
+   * the path
+   */
 
   String path();
 
-  HttpTransportInfo transport();
+  /**
+   * transport related information
+   */
+
+  WebPortTransportInfo transport();
 
 }

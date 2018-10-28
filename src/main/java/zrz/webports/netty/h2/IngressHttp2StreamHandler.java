@@ -19,9 +19,9 @@ import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Predicate;
 import io.reactivex.processors.UnicastProcessor;
 import zrz.webports.WebPortContext;
+import zrz.webports.api.WebPortTransportInfo;
+import zrz.webports.api.IncomingH2Stream;
 import zrz.webports.netty.NettyHttpTransportInfo;
-import zrz.webports.spi.HttpTransportInfo;
-import zrz.webports.spi.IncomingH2Stream;
 
 /**
  * each incoming HTTP stream is passed to this handler. we map it to a flow to allow the application to handle it.
@@ -144,7 +144,7 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     }
 
     @Override
-    public HttpTransportInfo transport() {
+    public WebPortTransportInfo transport() {
       return this.transport;
     }
 

@@ -1,4 +1,4 @@
-package zrz.webports.netty.sni;
+package zrz.webports.plugins.pem;
 
 import java.io.ByteArrayInputStream;
 import java.io.File;
@@ -19,9 +19,12 @@ import java.util.Set;
 
 import javax.net.ssl.SSLException;
 
+import org.bouncycastle.openssl.PEMException;
+import org.bouncycastle.openssl.PEMKeyPair;
+import org.bouncycastle.openssl.PEMParser;
+import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
-import org.shredzone.acme4j.util.KeyPairUtils;
 
 import com.google.common.net.InternetDomainName;
 
@@ -197,8 +200,12 @@ public class FileBasedSniMapper implements SniProvider {
   }
 
   private PrivateKey loadKeyPair(final Path resolve) {
-    try {
-      return KeyPairUtils.readKeyPair(new FileReader(resolve.toFile())).getPrivate();
+    try (PEMParser parser = new PEMParser(new FileReader(resolve.toFile()))) {
+      PEMKeyPair keyPair = (PEMKeyPair) parser.readObject();
+      return new JcaPEMKeyConverter().getKeyPair(keyPair).getPrivate();
+    }
+    catch (PEMException ex) {
+      throw new RuntimeException("Invalid PEM file", ex);
     }
     catch (final IOException e) {
       // TODO Auto-generated catch block

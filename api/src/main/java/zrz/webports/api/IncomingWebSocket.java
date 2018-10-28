@@ -1,4 +1,4 @@
-package zrz.webports.spi;
+package zrz.webports.api;
 
 import io.netty.handler.codec.http.websocketx.WebSocketFrame;
 import io.reactivex.Flowable;
