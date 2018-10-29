@@ -71,13 +71,11 @@ jar {
 }     
 
 task bouncycastlePluginJar(type: Jar) {
-  classifier 'bouncycastle-plugin'
   baseName 'webports-bouncycastle-plugin'
   from sourceSets.bouncycastlePlugin.output
 }
 
 task acmePluginJar(type: Jar) {
-  classifier 'acme-plugin'
   baseName 'webports-acme-plugin'
   from sourceSets.acmePlugin.output
 }
@@ -153,25 +151,11 @@ javadoc {
 
 artifacts {
 
-  archives (jar) {
-    name 'webports'
-  }
-  
-  archives (apiJar) {
-    name 'webports-api'
-  }
-  
-  archives (spiJar) {
-    name 'webports-spi'
-  }
-  
-  archives(acmePluginJar) {
-    name 'webports-acme-plugin'
-  }
-  
-  archives(bouncycastlePluginJar) {
-    name 'webports-bouncycastle-plugin'
-  }
+  archives (jar)
+  archives (apiJar)
+  archives (spiJar)
+  archives(acmePluginJar)
+  archives(bouncycastlePluginJar)
   
 //  bouncycastlePlugin   bouncycastlePluginJar
 //  spi apiJar
