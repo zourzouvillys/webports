@@ -1,6 +1,5 @@
 apply plugin: 'java-library'
 apply plugin: 'eclipse'
-apply plugin: 'maven'
 apply plugin: 'maven-publish'
 
 
@@ -17,15 +16,8 @@ sourceCompatibility = 9
 targetCompatibility = 9
 
 configurations {
-  api
-  'default' { extendsFrom api }
-  spi
-  bouncycastlePlugin
 }
 
-artifacts { api jar }
-
-artifacts { jar  }
 
 
 sourceSets {
@@ -73,29 +65,31 @@ sourceSets {
 jar {
   manifest {
     attributes ('Automatic-Module-Name': "zrz.webports")
-  }
+  }  
   from sourceSets.main.output
   from sourceSets.spi.output
 }     
 
 task bouncycastlePluginJar(type: Jar) {
-  appendix = 'bouncycastle-plugin'
+  classifier 'bouncycastle-plugin'
+  baseName 'webports-bouncycastle-plugin'
   from sourceSets.bouncycastlePlugin.output
 }
 
 task acmePluginJar(type: Jar) {
-  appendix = 'acme-plugin'
+  classifier 'acme-plugin'
+  baseName 'webports-acme-plugin'
   from sourceSets.acmePlugin.output
 }
 
 task apiJar(type: Jar) {
-  appendix = 'api'
+  classifier 'api'
   from sourceSets.api.output
 }
 
 
 task spiJar(type: Jar) {
-  appendix = 'spi'
+  classifier 'spi'
   from sourceSets.spi.output
 }
 
@@ -159,33 +153,64 @@ javadoc {
 
 artifacts {
 
-  archives jar
-  archives apiJar
-  archives spiJar
-  archives acmePluginJar
-  archives bouncycastlePluginJar
+  archives (jar) {
+    name 'webports'
+  }
   
-  bouncycastlePlugin   bouncycastlePluginJar
-  spi apiJar
+  archives (apiJar) {
+    name 'webports-api'
+  }
+  
+  archives (spiJar) {
+    name 'webports-spi'
+  }
+  
+  archives(acmePluginJar) {
+    name 'webports-acme-plugin'
+  }
+  
+  archives(bouncycastlePluginJar) {
+    name 'webports-bouncycastle-plugin'
+  }
+  
+//  bouncycastlePlugin   bouncycastlePluginJar
+//  spi apiJar
   
 //  archives sourcesJar
 //  archives javadocJar
 }
 
-install {
-  repositories.mavenInstaller {
-    pom.project {
-      licenses {
-        license {
-          name 'The Apache Software License, Version 2.0'
-          url 'http://www.apache.org/licenses/LICENSE-2.0.txt'
-          distribution 'repo'
-        }
-      }
-    }
-  }
-}
 
 eclipse.classpath.plusConfigurations << configurations.acmePluginRuntimeClasspath
 eclipse.classpath.plusConfigurations << configurations.bouncycastlePluginRuntimeClasspath
+
+
+publishing {
+  publications {
+    mavenJava(MavenPublication) {
+      from components.java
+      //artifact jar
+      artifact spiJar
+      artifact apiJar
+      artifactId = 'webports-core'
+    }
+    bouncycastlePlugin(MavenPublication) {
+      artifact bouncycastlePluginJar
+      artifactId = 'webports-plugin-bouncycastle'
+    }
+    acmePlugin(MavenPublication) {
+      artifact acmePluginJar
+      artifactId = 'webports-plugin-acme'
+    }
+  }
+  repositories {
+    maven {
+            url = "$buildDir/repo"
+        }
+    }      
+    
+}
+
+
+
 
