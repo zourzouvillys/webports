@@ -1,9 +1,10 @@
-apply plugin: 'eclipse'
 
-group = 'com.github.zourzouvillys.webports'
-version = 'master-SNAPSHOT'
+boolean isLibrary(entry) { return entry.properties.kind.equals('lib') }
+boolean isTestScope(entry) { return entry.entryAttributes.get('gradle_used_by_scope').equals('test'); }
+boolean isModule(entry) { isLibrary(entry) && !isTestScope(entry); }
+boolean isSource(entry) { return entry.properties.kind.equals('src'); }
 
-subprojects{
+allprojects {
 
   apply plugin: 'java-library'
   apply plugin: 'eclipse'
@@ -34,7 +35,7 @@ subprojects{
     publications {
       "$project.name"(MavenPublication) {
         groupId project.group
-        artifactId 'webports-' + project.name
+        artifactId ((project.name == 'webports') ? ('webports-core') : ('webports-' + project.name))
         version project.version
         from components.java
         artifact sourcesJar
@@ -61,95 +62,91 @@ subprojects{
     failOnError = false
     options.addBooleanOption('html5', true)
   }    
+ 
+ 
+  eclipse {
   
+    project.name = (project.name == 'webports') ? 'webports' : ('webports:' + project.name)
+    project.natures << 'org.eclipse.buildship.core.gradleprojectnature'
+
+    classpath {
+      file {
+        whenMerged {
+          //entries.findAll { isModule(it) }.each {  it.entryAttributes['module'] = 'true' }
+          entries.findAll { isSource(it) && isTestScope(it) }.each { it.entryAttributes['test'] = 'true' }
+          entries.findAll { isLibrary(it) && isTestScope(it) }.each { it.entryAttributes['test'] = 'true' }
+        }
+      }
+    }
+    
+  }
+
   
 }
 
+dependencies {
+  
+  api project(':api')
+  api project(':spi')
 
-project(':core') {
-
-  dependencies {
-  
-    api project(':api')
-    api project(':spi')
-
-    // shared libs
-    implementation ('com.google.guava:guava:27.0-jre') {
-      // ignore the dependencies
-      transitive = false
-    }
-  
-    implementation 'org.slf4j:slf4j-api:1.7.25'
-    implementation 'io.reactivex.rxjava2:rxjava:2.2.2'
-  
-    // main transports.
-    api 'io.netty:netty-codec-http2:4.1.30.Final'
-    api 'io.netty:netty-codec-http:4.1.30.Final'
-  
-    implementation 'io.netty:netty-handler:4.1.30.Final'
-    implementation 'io.netty:netty-transport:4.1.30.Final'
-
-    compileOnly 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
-  
-    testImplementation  'junit:junit:4.12'
-    testImplementation  'org.assertj:assertj-core:3.6.1'
-    testImplementation  'ch.qos.logback:logback-classic:1.2.3'  
-   
+  // shared libs
+  implementation ('com.google.guava:guava:27.0-jre') {
+    // ignore the dependencies
+    transitive = false
   }
+  
+  implementation 'org.slf4j:slf4j-api:1.7.25'
+  implementation 'io.reactivex.rxjava2:rxjava:2.2.2'
+  
+  // main transports.
+  api 'io.netty:netty-codec-http2:4.1.30.Final'
+  api 'io.netty:netty-codec-http:4.1.30.Final'
+  
+  implementation 'io.netty:netty-handler:4.1.30.Final'
+  implementation 'io.netty:netty-transport:4.1.30.Final'
 
-
+  compileOnly 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
+  
+  testImplementation  'junit:junit:4.12'
+  testImplementation  'org.assertj:assertj-core:3.6.1'
+  testImplementation  'ch.qos.logback:logback-classic:1.2.3'  
 
 }
 
 project(':spi') {
-
   dependencies {
     api 'io.reactivex.rxjava2:rxjava:2.2.2'
-    api 'io.netty:netty-handler:4.1.30.Final'
     api 'io.netty:netty-codec-http2:4.1.30.Final'
-    api 'io.reactivex.rxjava2:rxjava:2.2.2'
     api 'io.netty:netty-handler:4.1.30.Final'
-  }
-  
+  }  
 }
 
 
 project(':api') {
-
   dependencies {
     api 'io.reactivex.rxjava2:rxjava:2.2.2'
     api 'io.netty:netty-codec-http2:4.1.30.Final'
   }
-  
 }
 
 
 project(':plugins:acme-autocert') {
-
-
   dependencies {
     implementation project(':spi')
     implementation 'org.shredzone.acme4j:acme4j-client:2.3'
     implementation 'org.shredzone.acme4j:acme4j-utils:2.3'
   }
-  
 }
 
 
 project(':plugins:bouncycastle') {
-
   dependencies {
     implementation project(':spi')
     implementation 'org.bouncycastle:bcpkix-jdk15on:1.60'
     implementation 'org.bouncycastle:bcprov-jdk15on:1.60'  
     implementation 'org.slf4j:slf4j-api:1.7.25'
     implementation ('com.google.guava:guava:27.0-jre') {
-      // ignore the dependencies
       transitive = false
     }
   }
-
 }
-
-//eclipse.classpath.plusConfigurations << configurations.acmePluginRuntimeClasspath
-//eclipse.classpath.plusConfigurations << configurations.bouncycastlePluginRuntimeClasspath
