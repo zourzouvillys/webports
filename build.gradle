@@ -80,6 +80,10 @@ allprojects {
     }
     
   }
+  
+  dependencies {
+    compileOnly 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
+  }
 
   
 }
@@ -148,5 +152,23 @@ project(':plugins:bouncycastle') {
     implementation ('com.google.guava:guava:27.0-jre') {
       transitive = false
     }
+  }
+}
+
+
+
+project(':plugins:jersey2') {
+  dependencies {
+    implementation project(':spi')
+    implementation project(':api')
+    // for JAX-RS:
+    compile 'org.glassfish.jersey.core:jersey-server:2.27'
+
+    testCompile 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.assertj:assertj-core:3.6.1'
+    testCompile 'ch.qos.logback:logback-classic:1.2.3'  
+
+ 
   }
 }

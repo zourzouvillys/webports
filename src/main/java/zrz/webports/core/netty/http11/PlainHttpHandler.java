@@ -5,14 +5,14 @@ import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.SimpleChannelInboundHandler;
 import io.netty.handler.codec.http.FullHttpRequest;
 import io.netty.handler.codec.http.HttpContent;
-import io.netty.handler.codec.http.HttpHeaders;
 import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http.HttpRequest;
 import io.reactivex.Flowable;
+import zrz.webports.api.IncomingHttpRequest;
+import zrz.webports.api.WebPortHttpHeaders;
 import zrz.webports.api.WebPortTransportInfo;
 import zrz.webports.core.WebPortContext;
 import zrz.webports.core.netty.NettyHttpTransportInfo;
-import zrz.webports.api.IncomingHttpRequest;
 
 public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
 
@@ -37,12 +37,15 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
       content = null;
     }
 
-    final Flowable<HttpObject> res = this.ctx.http(
+    final Flowable<HttpObject> res =
+      this.ctx.http(
         new IncomingHttpRequest() {
 
+          WrappedHttp1Headers wrappedHeaders = new WrappedHttp1Headers(req.headers());
+
           @Override
-          public HttpHeaders headers() {
-            return req.headers();
+          public WebPortHttpHeaders headers() {
+            return this.wrappedHeaders;
           }
 
           @Override
@@ -66,26 +69,32 @@ public class PlainHttpHandler extends SimpleChannelInboundHandler<HttpRequest> {
             return transport;
           }
 
+          @Override
+          public CharSequence scheme() {
+            return this.transport().isSecure() ? "https"
+                                               : "http";
+          }
+
         });
 
     res.subscribe(
-        msg -> {
-          log.debug("sending {}", msg);
-          ctx.writeAndFlush(msg);
-        },
-        err -> {
-          log.warn("error on transmission stream: {}", err.getMessage(), err);
-          ctx.close();
-          if (content != null) {
-            content.release();
-          }
-        },
-        () -> {
-          ctx.close();
-          if (content != null) {
-            content.release();
-          }
-        });
+      msg -> {
+        log.debug("sending {}", msg);
+        ctx.writeAndFlush(msg);
+      },
+      err -> {
+        log.warn("error on transmission stream: {}", err.getMessage(), err);
+        ctx.close();
+        if (content != null) {
+          content.release();
+        }
+      },
+      () -> {
+        ctx.close();
+        if (content != null) {
+          content.release();
+        }
+      });
 
   }
 

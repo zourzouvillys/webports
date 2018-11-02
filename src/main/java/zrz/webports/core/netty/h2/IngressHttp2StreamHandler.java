@@ -3,28 +3,42 @@ package zrz.webports.core.netty.h2;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 
+import com.google.common.base.VerifyException;
+
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpContent;
+import io.netty.handler.codec.http.HttpObject;
+import io.netty.handler.codec.http.HttpResponse;
+import io.netty.handler.codec.http.HttpUtil;
+import io.netty.handler.codec.http.LastHttpContent;
+import io.netty.handler.codec.http2.DefaultHttp2DataFrame;
+import io.netty.handler.codec.http2.DefaultHttp2HeadersFrame;
 import io.netty.handler.codec.http2.DefaultHttp2ResetFrame;
 import io.netty.handler.codec.http2.Http2DataFrame;
 import io.netty.handler.codec.http2.Http2Error;
 import io.netty.handler.codec.http2.Http2Headers;
 import io.netty.handler.codec.http2.Http2HeadersFrame;
 import io.netty.handler.codec.http2.Http2StreamFrame;
+import io.netty.handler.codec.http2.HttpConversionUtil;
 import io.netty.util.Attribute;
 import io.netty.util.AttributeKey;
 import io.reactivex.Flowable;
 import io.reactivex.disposables.Disposable;
 import io.reactivex.functions.Predicate;
 import io.reactivex.processors.UnicastProcessor;
+import zrz.webports.api.IncomingH2Stream;
+import zrz.webports.api.IncomingHttpRequest;
+import zrz.webports.api.WebPortHttpHeaders;
 import zrz.webports.api.WebPortTransportInfo;
 import zrz.webports.core.WebPortContext;
 import zrz.webports.core.netty.NettyHttpTransportInfo;
-import zrz.webports.api.IncomingH2Stream;
 
 /**
- * each incoming HTTP stream is passed to this handler. we map it to a flow to allow the application to handle it.
+ * each incoming HTTP stream is passed to this handler. we map it to a flow to allow the application
+ * to handle it.
  */
 
 @ChannelHandler.Sharable
@@ -64,10 +78,12 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     private final AtomicBoolean willFlush = new AtomicBoolean(true);
     private final Http2HeadersFrame headers;
     private final NettyHttpTransportInfo transport;
+    private final WrappedHttp2Headers wrappedHeaders;
 
     public ActiveStream(final ChannelHandlerContext ctx, final Http2HeadersFrame headers) {
       this.ctx = ctx;
       this.headers = headers;
+      this.wrappedHeaders = new WrappedHttp2Headers(headers.headers());
       this.transport = NettyHttpTransportInfo.fromChannel(ctx.channel().parent());
       this.txflow = IngressHttp2StreamHandler.this.factory.apply(this);
     }
@@ -92,7 +108,10 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
 
       if (this.handle == null) {
 
-        this.handle = this.txflow.subscribe(
+        // on the first flush we subscribe to the transmit stream.
+
+        this.handle =
+          this.txflow.subscribe(
             frame -> {
 
               if (!this.willFlush.get()) {
@@ -128,14 +147,22 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
       }
     }
 
+    /**
+     * called by the application to read frames.
+     */
+
     @Override
     public Flowable<Http2StreamFrame> incoming() {
-      return this.rxqueue.takeUntil((Predicate<Http2StreamFrame>) frame -> isEndOfStream(frame));
+      if (this.headers.isEndStream()) {
+        return Flowable.empty();
+      }
+      return this.rxqueue
+        .takeUntil((Predicate<Http2StreamFrame>) frame -> isEndOfStream(frame));
     }
 
     @Override
-    public Http2Headers headers() {
-      return this.headers.headers();
+    public WebPortHttpHeaders headers() {
+      return this.wrappedHeaders;
     }
 
     @Override
@@ -146,6 +173,70 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     @Override
     public WebPortTransportInfo transport() {
       return this.transport;
+    }
+
+    @Override
+    public CharSequence method() {
+      return this.headers.headers().method();
+    }
+
+    @Override
+    public CharSequence path() {
+      return this.headers.headers().path();
+    }
+
+    @Override
+    public CharSequence scheme() {
+      return this.headers.headers().scheme();
+    }
+
+    @Override
+    public Flowable<Http2StreamFrame> toHttp(final Function<IncomingHttpRequest, Flowable<HttpObject>> httpHandler) {
+      return httpHandler.apply(new Http2ToHttp1RequestWrapper(this))
+        .flatMap(content -> {
+
+          if (content instanceof FullHttpResponse) {
+
+            // headers + optional content in a single shot.
+            final FullHttpResponse res = (FullHttpResponse) content;
+
+            final Http2Headers h2headers = HttpConversionUtil.toHttp2Headers(res, res.content().isReadable());
+
+            if (!res.content().isReadable()) {
+              return Flowable.just(new DefaultHttp2HeadersFrame(h2headers, true));
+            }
+
+            return Flowable
+              .just(
+                new DefaultHttp2HeadersFrame(h2headers, false),
+                new DefaultHttp2DataFrame(res.content(), true));
+
+          }
+          else if (content instanceof HttpResponse) {
+
+            final HttpResponse res = (HttpResponse) content;
+
+            final boolean last = HttpUtil.getContentLength(res, -1) == 0;
+
+            final Http2Headers h2headers = HttpConversionUtil.toHttp2Headers(res, true);
+
+            return Flowable.just(new DefaultHttp2HeadersFrame(h2headers, last));
+
+          }
+          else if (content instanceof LastHttpContent) {
+
+            return Flowable.just(new DefaultHttp2DataFrame(((HttpContent) content).content(), true));
+
+          }
+          else if (content instanceof HttpContent) {
+            return Flowable.just(new DefaultHttp2DataFrame(((HttpContent) content).content()));
+          }
+          else {
+            throw new VerifyException("unknonw http frame: " + content.getClass());
+          }
+
+        });
+
     }
 
   }

@@ -1,6 +1,8 @@
 package zrz.webports.api;
 
-import io.netty.handler.codec.http2.Http2Headers;
+import java.util.function.Function;
+
+import io.netty.handler.codec.http.HttpObject;
 import io.netty.handler.codec.http2.Http2StreamFrame;
 import io.reactivex.Flowable;
 
@@ -11,16 +13,16 @@ import io.reactivex.Flowable;
  *
  */
 
-public interface IncomingH2Stream {
+public interface IncomingH2Stream extends WebPortHttpRequest {
 
   /**
    * an incoming h2 stream always starts with headers. this contains the headers that initiated it.
    */
 
-  Http2Headers headers();
+  WebPortHttpHeaders headers();
 
   /**
-   * true if there was only a single header frame.
+   * true if there was only a single header frame and this is the end of the stream.
    */
 
   boolean isEndStream();
@@ -32,9 +34,13 @@ public interface IncomingH2Stream {
   Flowable<Http2StreamFrame> incoming();
 
   /**
-   * info about the transport this request was stream was opened on.
+   * maps the incoming stream and the response to HTTP/1.1 API semantics, allowing a single handler
+   * to be used for both HTTP/1.1 and H2.
+   *
+   * @param httpHandler
+   * @return
    */
 
-  WebPortTransportInfo transport();
+  Flowable<Http2StreamFrame> toHttp(Function<IncomingHttpRequest, Flowable<HttpObject>> httpHandler);
 
 }
