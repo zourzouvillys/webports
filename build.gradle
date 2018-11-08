@@ -11,7 +11,10 @@ allprojects {
   apply plugin: 'maven-publish'
 
   group = 'com.github.zourzouvillys.webports'
-  version = 'master-SNAPSHOT'
+  
+  version = "${version}" != "unspecified"
+    ? "${version}"
+    : 'master-SNAPSHOT';
   
   sourceCompatibility = 9
   targetCompatibility = 9
@@ -43,7 +46,7 @@ allprojects {
     }
     repositories {
       maven {
-        url = "$buildDir/repo"
+        url = "$rootProject.buildDir/repo"
       }
     }
   }
