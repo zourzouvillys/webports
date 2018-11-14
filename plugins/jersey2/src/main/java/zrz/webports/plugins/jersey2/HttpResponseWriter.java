@@ -50,7 +50,9 @@ class HttpResponseWriter extends Flowable<HttpObject>
 
     final boolean hasBody = contentLength != 0;
 
-    wres.headers().set(HttpHeaderNames.CONTENT_LENGTH, contentLength);
+    if (contentLength >= 0) {
+      wres.headers().set(HttpHeaderNames.CONTENT_LENGTH, contentLength);
+    }
 
     this.sink.onNext(wres);
 

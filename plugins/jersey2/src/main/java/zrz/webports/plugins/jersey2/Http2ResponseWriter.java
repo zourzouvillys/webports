@@ -46,13 +46,16 @@ class Http2ResponseWriter extends Flowable<Http2StreamFrame>
 
     headers.status(Integer.toString(res.getStatus()));
 
+
     for (final Entry<String, List<String>> e : res.getStringHeaders().entrySet()) {
       headers.add(e.getKey().toLowerCase(), e.getValue());
     }
 
     final boolean hasBody = contentLength != 0;
 
-    headers.setLong(HttpHeaderNames.CONTENT_LENGTH, contentLength);
+    if (contentLength >= 0) {
+      headers.setLong(HttpHeaderNames.CONTENT_LENGTH, contentLength);
+    }
 
     this.sink.onNext(new DefaultHttp2HeadersFrame(headers, !hasBody));
 
