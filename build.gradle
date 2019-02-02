@@ -106,11 +106,11 @@ dependencies {
   implementation 'io.reactivex.rxjava2:rxjava:2.2.2'
   
   // main transports.
-  api 'io.netty:netty-codec-http2:4.1.30.Final'
-  api 'io.netty:netty-codec-http:4.1.30.Final'
+  api 'io.netty:netty-codec-http2:4.1.31.Final'
+  api 'io.netty:netty-codec-http:4.1.31.Final'
   
-  implementation 'io.netty:netty-handler:4.1.30.Final'
-  implementation 'io.netty:netty-transport:4.1.30.Final'
+  implementation 'io.netty:netty-handler:4.1.31.Final'
+  implementation 'io.netty:netty-transport:4.1.31.Final'
 
   compileOnly 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
   
@@ -123,8 +123,8 @@ dependencies {
 project(':spi') {
   dependencies {
     api 'io.reactivex.rxjava2:rxjava:2.2.2'
-    api 'io.netty:netty-codec-http2:4.1.30.Final'
-    api 'io.netty:netty-handler:4.1.30.Final'
+    api 'io.netty:netty-codec-http2:4.1.31.Final'
+    api 'io.netty:netty-handler:4.1.31.Final'
   }  
 }
 
@@ -132,7 +132,7 @@ project(':spi') {
 project(':api') {
   dependencies {
     api 'io.reactivex.rxjava2:rxjava:2.2.2'
-    api 'io.netty:netty-codec-http2:4.1.30.Final'
+    api 'io.netty:netty-codec-http2:4.1.31.Final'
   }
 }
 
@@ -166,6 +166,26 @@ project(':plugins:jersey2') {
     implementation project(':api')
     // for JAX-RS:
     compile 'org.glassfish.jersey.core:jersey-server:2.27'
+
+    testCompile 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
+    testCompile 'junit:junit:4.12'
+    testCompile 'org.assertj:assertj-core:3.6.1'
+    testCompile 'ch.qos.logback:logback-classic:1.2.3'  
+
+ 
+  }
+}
+
+project(':plugins:grpc') {
+
+  dependencies {
+  
+    implementation project(':spi')
+    implementation project(':api')
+    
+    implementation 'org.slf4j:slf4j-api:1.7.25'
+    
+    implementation 'io.grpc:grpc-core:1.18.0'
 
     testCompile 'org.eclipse.jdt:org.eclipse.jdt.annotation:2.1.150'
     testCompile 'junit:junit:4.12'

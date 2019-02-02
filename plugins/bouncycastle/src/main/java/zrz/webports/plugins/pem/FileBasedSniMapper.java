@@ -16,9 +16,11 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ExecutionException;
 
 import javax.net.ssl.SSLException;
 
+import org.bouncycastle.asn1.pkcs.PrivateKeyInfo;
 import org.bouncycastle.openssl.PEMException;
 import org.bouncycastle.openssl.PEMKeyPair;
 import org.bouncycastle.openssl.PEMParser;
@@ -26,6 +28,9 @@ import org.bouncycastle.openssl.jcajce.JcaPEMKeyConverter;
 import org.bouncycastle.util.io.pem.PemObject;
 import org.bouncycastle.util.io.pem.PemReader;
 
+import com.google.common.cache.CacheBuilder;
+import com.google.common.cache.CacheLoader;
+import com.google.common.cache.LoadingCache;
 import com.google.common.net.InternetDomainName;
 
 import io.netty.handler.codec.http2.Http2SecurityUtil;
@@ -61,29 +66,29 @@ public class FileBasedSniMapper implements SniProvider {
       }
 
       Files.list(certdir)
-          .forEach(p -> {
+        .forEach(p -> {
 
-            if (!Files.isDirectory(p)) {
-              return;
-            }
+          if (!Files.isDirectory(p)) {
+            return;
+          }
 
-            final String name = p.getFileName().toString();
+          final String name = p.getFileName().toString();
 
-            if (name.startsWith("_.") && InternetDomainName.isValid(name.substring(2))) {
-              final InternetDomainName idn = InternetDomainName.from(p.getFileName().toString().substring(2));
-              log.info("adding wildcard for {}", p.getFileName());
-              this.wildcards.put(idn, p.toAbsolutePath());
-            }
-            else if (InternetDomainName.isValid(name)) {
-              final InternetDomainName idn = InternetDomainName.from(p.getFileName().toString());
-              log.info("adding cert for {}", idn);
-              this.paths.put(idn, p.toAbsolutePath());
-            }
-            else {
-              log.warn("invalid domain name for cert: {}", name);
-            }
+          if (name.startsWith("_.") && InternetDomainName.isValid(name.substring(2))) {
+            final InternetDomainName idn = InternetDomainName.from(p.getFileName().toString().substring(2));
+            log.info("adding wildcard for {}", p.getFileName());
+            this.wildcards.put(idn, p.toAbsolutePath());
+          }
+          else if (InternetDomainName.isValid(name)) {
+            final InternetDomainName idn = InternetDomainName.from(p.getFileName().toString());
+            log.info("adding cert for {}", idn);
+            this.paths.put(idn, p.toAbsolutePath());
+          }
+          else {
+            log.warn("invalid domain name for cert: {}", name);
+          }
 
-          });
+        });
 
     }
     catch (final IOException e) {
@@ -91,6 +96,10 @@ public class FileBasedSniMapper implements SniProvider {
     }
 
   }
+
+  private LoadingCache<String, SslContext> cache =
+    CacheBuilder.newBuilder()
+      .build(CacheLoader.from(name -> generate(name)));
 
   @Override
   public Flowable<SslContext> map(String input) {
@@ -107,9 +116,12 @@ public class FileBasedSniMapper implements SniProvider {
 
     }
 
-    // TODO: cache
-
-    return Flowable.just(this.generate(input));
+    try {
+      return Flowable.just(cache.get(input));
+    }
+    catch (ExecutionException e) {
+      return Flowable.error(e);
+    }
 
   }
 
@@ -127,9 +139,10 @@ public class FileBasedSniMapper implements SniProvider {
 
       final InternetDomainName idn = InternetDomainName.from(_name);
 
-      Path certdir = this.paths.containsKey(idn)
-          ? this.paths.get(idn)
-          : this.wildcards.get(idn.parent());
+      Path certdir =
+        this.paths.containsKey(idn)
+                                    ? this.paths.get(idn)
+                                    : this.wildcards.get(idn.parent());
 
       if (certdir == null) {
         certdir = this.wildcards.values().iterator().next();
@@ -142,19 +155,19 @@ public class FileBasedSniMapper implements SniProvider {
       final X509Certificate[] certs = this.loadCerts(certdir.resolve("tls.crt"));
 
       return SslContextBuilder
-          .forServer(key, certs)
-          .ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
-          .protocols("TLSv1.3", "TLSv1.2")
-          // .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
-          .applicationProtocolConfig(
-              new ApplicationProtocolConfig(
-                  ApplicationProtocolConfig.Protocol.ALPN,
-                  ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
-                  ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
-                  ApplicationProtocolNames.HTTP_2,
-                  ApplicationProtocolNames.HTTP_1_1,
-                  "acme-tls/1"))
-          .build();
+        .forServer(key, certs)
+        .ciphers(ciphers, SupportedCipherSuiteFilter.INSTANCE)
+        .protocols("TLSv1.3", "TLSv1.2")
+        // .ciphers(ciphers, new DebuggingCipherSuiteFilter(SupportedCipherSuiteFilter.INSTANCE))
+        .applicationProtocolConfig(
+          new ApplicationProtocolConfig(
+            ApplicationProtocolConfig.Protocol.ALPN,
+            ApplicationProtocolConfig.SelectorFailureBehavior.NO_ADVERTISE,
+            ApplicationProtocolConfig.SelectedListenerFailureBehavior.ACCEPT,
+            ApplicationProtocolNames.HTTP_2,
+            ApplicationProtocolNames.HTTP_1_1,
+            "acme-tls/1"))
+        .build();
     }
     catch (final SSLException e) {
       throw new RuntimeException(e);
@@ -178,7 +191,8 @@ public class FileBasedSniMapper implements SniProvider {
 
         final byte[] x509Data = pemObject.getContent();
 
-        final Certificate certificate = certificateFactory.generateCertificate(
+        final Certificate certificate =
+          certificateFactory.generateCertificate(
             new ByteArrayInputStream(x509Data));
 
         if (certificate instanceof X509Certificate) {
@@ -200,9 +214,19 @@ public class FileBasedSniMapper implements SniProvider {
   }
 
   private PrivateKey loadKeyPair(final Path resolve) {
+
     try (PEMParser parser = new PEMParser(new FileReader(resolve.toFile()))) {
-      PEMKeyPair keyPair = (PEMKeyPair) parser.readObject();
-      return new JcaPEMKeyConverter().getKeyPair(keyPair).getPrivate();
+
+      Object asn = parser.readObject();
+
+      log.info("read {} from {}", asn.getClass(), resolve);
+
+      if (asn instanceof PrivateKeyInfo) {
+        return new JcaPEMKeyConverter().getPrivateKey((PrivateKeyInfo) asn);
+      }
+
+      return new JcaPEMKeyConverter().getKeyPair((PEMKeyPair) asn).getPrivate();
+
     }
     catch (PEMException ex) {
       throw new RuntimeException("Invalid PEM file", ex);

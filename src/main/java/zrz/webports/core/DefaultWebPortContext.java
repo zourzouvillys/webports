@@ -25,9 +25,11 @@ public class DefaultWebPortContext implements WebPortContext {
   private final Function<IncomingWebSocket, Flowable<WebSocketFrame>> ws;
   private final Function<IncomingHttpRequest, Flowable<HttpObject>> http;
 
-  public DefaultWebPortContext(final Supplier<Function<IncomingH2Stream, Flowable<Http2StreamFrame>>> h2,
+  public DefaultWebPortContext(
+      final Supplier<Function<IncomingH2Stream, Flowable<Http2StreamFrame>>> h2,
 
-      final Supplier<Function<IncomingWebSocket, Flowable<WebSocketFrame>>> ws, final Supplier<Function<IncomingHttpRequest, Flowable<HttpObject>>> http,
+      final Supplier<Function<IncomingWebSocket, Flowable<WebSocketFrame>>> ws,
+      final Supplier<Function<IncomingHttpRequest, Flowable<HttpObject>>> http,
       final SniProvider mapper) {
     // this.sni = new LocalSniMapper();
     this.sni = mapper;
@@ -44,14 +46,14 @@ public class DefaultWebPortContext implements WebPortContext {
   @Override
   public Http2MultiplexCodec h2Handler() {
     return Http2MultiplexCodecBuilder
-        .forServer(new IngressHttp2StreamHandler(this, this.h2))
-        // .validateHeaders(true)
-        .initialSettings(Http2Settings
-            .defaultSettings()
-            .initialWindowSize(1024 * 128)
-            .maxConcurrentStreams(1024))
-        .frameLogger(new Http2FrameLogger(LogLevel.INFO))
-        .build();
+      .forServer(new IngressHttp2StreamHandler(this, this.h2))
+      // .validateHeaders(true)
+      .initialSettings(Http2Settings
+        .defaultSettings()
+        .initialWindowSize(1024 * 128)
+        .maxConcurrentStreams(1024))
+      .frameLogger(new Http2FrameLogger(LogLevel.TRACE))
+      .build();
   }
 
   @Override

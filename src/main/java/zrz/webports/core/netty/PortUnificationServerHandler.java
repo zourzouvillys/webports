@@ -8,7 +8,6 @@ import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.ByteToMessageDecoder;
 import io.netty.handler.ssl.SslHandler;
 import zrz.webports.core.WebPortContext;
-import zrz.webports.core.netty.h2.Http2OrHttpHandler;
 import zrz.webports.core.netty.http11.Http1Initializer;
 import zrz.webports.core.netty.sni.LocalSniHandler;
 
@@ -80,10 +79,7 @@ public class PortUnificationServerHandler extends ByteToMessageDecoder {
 
     final ChannelPipeline p = ctx.pipeline();
 
-    p.addAfter("PortUnificationServerHandler#0", "LocalSniHandler#0", new LocalSniHandler(this.ctx.sni()));
-    // TLS can have both http/1.1 or h2.
-    p.addLast(new Http2OrHttpHandler(this.ctx));
-
+    p.addAfter("PortUnificationServerHandler#0", "LocalSniHandler#0", new LocalSniHandler(this.ctx));
     p.remove(this);
 
     log.trace("enabled SSL, {}", p.names());

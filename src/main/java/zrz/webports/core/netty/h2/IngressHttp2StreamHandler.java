@@ -8,6 +8,8 @@ import com.google.common.base.VerifyException;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelInboundHandler;
+import io.netty.channel.ChannelPipeline;
 import io.netty.handler.codec.http.FullHttpResponse;
 import io.netty.handler.codec.http.HttpContent;
 import io.netty.handler.codec.http.HttpObject;
@@ -89,7 +91,7 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     }
 
     void cancelled() {
-      log.debug("H2 cancelled due to unnsubscribing from incoming frames");
+      log.trace("H2 cancelled due to unnsubscribing from incoming frames");
     }
 
     public void accept(final Http2StreamFrame frame) {
@@ -131,7 +133,7 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
             },
             () -> {
 
-              log.debug("H2 stream completed");
+              log.trace("H2 stream completed");
 
             });
 
@@ -308,6 +310,7 @@ public class IngressHttp2StreamHandler extends ChannelDuplexHandler {
     }
 
     ctx.flush();
+
   }
 
 }

@@ -9,8 +9,8 @@ import zrz.webports.core.WebPortContext;
 import zrz.webports.core.netty.HttpUtils;
 
 /**
- * Used during protocol negotiation (connection establishment), adds either a http/1.1 or h2 handler to the end of the
- * pipeline.
+ * Used during protocol negotiation (connection establishment), adds either a http/1.1 or h2 handler
+ * to the end of the pipeline.
  */
 
 public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
@@ -36,6 +36,7 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
     }
 
     super.handshakeFailure(ctx, cause);
+    
   }
 
   @Override
@@ -49,6 +50,8 @@ public class Http2OrHttpHandler extends ApplicationProtocolNegotiationHandler {
 
   @Override
   protected void configurePipeline(final ChannelHandlerContext ctx, final String protocol) throws Exception {
+    
+    log.debug("ALPN was {}", protocol);
 
     if ("acme-tls/1".equals(protocol)) {
       log.info("using acme-tls/1");

@@ -8,3 +8,5 @@ include ':api', ':spi'
 include ':plugins:bouncycastle'
 include ':plugins:acme-autocert'
 include ':plugins:jersey2'
+include ':plugins:grpc'
+
